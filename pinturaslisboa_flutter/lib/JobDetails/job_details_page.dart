@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import '../job.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../client.dart';
+import '../Tasks/task_page.dart';
 
 class JobDetailsPage extends StatefulWidget {
   final Job job;
@@ -16,6 +18,24 @@ class JobDetailsPage extends StatefulWidget {
 
 class _JobDetailsPageState extends State<JobDetailsPage> {
 
+  late String mapImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    mapImageUrl = getMapImageUrl(widget.job.address);
+    print("--------------------\n\n");
+    print('Map image URL:');
+    print(mapImageUrl);
+    print("--------------------\n\n");
+  }
+
+  String getMapImageUrl(String address) {
+    const apiKey = 'AIzaSyDjM1EkO5FE32oZj0DHJ05t8IubVH0UA3Y';
+    final encodedAddress = Uri.encodeComponent(address);
+    return 'https://maps.googleapis.com/maps/api/staticmap?center=$encodedAddress&zoom=15&size=300x150&key=$apiKey';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,18 +49,94 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
       ),
       body: ListView(
         children: <Widget>[
-          Center(
-            child: Container(
-              padding: const EdgeInsets.all(80.0),
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(52, 25, 76, 134),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text(
-                'Maps preview will go here',
-                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 25, 76, 134)),
-                textAlign: TextAlign.center,
-              ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                const SizedBox(width: 16),
+                Center(
+                  child: Container(
+                    width: 150,
+                    height: 150,
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(52, 25, 76, 134),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    // ignore: prefer_const_constructors
+                    child: Text(
+                      "Next Task: Covering",
+                      // ignore: prefer_const_constructors
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        fontWeight: FontWeight.bold,
+                        color: const Color.fromARGB(255, 25, 76, 134),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Center(
+                  child: Container(
+                    width: 300,
+                    height: 150,
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        colors: [Color.fromARGB(52, 25, 76, 134).withOpacity(0.5), Colors.transparent],
+                        center: Alignment.center,
+                        radius: 10.0,
+                      ),
+                      color: const Color.fromARGB(52, 25, 76, 134),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(6),
+                            color: Colors.white,
+                          ),
+                          child: Stack(
+                            children: [
+                              Image.network(
+                                mapImageUrl,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                                  if (loadingProgress == null) {
+                                    return child;
+                                  } else {
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                        ? loadingProgress.cumulativeBytesLoaded / (loadingProgress.expectedTotalBytes ?? 1)
+                                        : null,
+                                      ),
+                                    );
+                                  }
+                                },
+                                errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+                                  return const Text('Failed to load map image');
+                                }
+                              ),
+                              const Center(
+                                child: Icon(
+                                  Icons.location_on,
+                                  color:  Color.fromARGB(255, 25, 76, 134),
+                                  size: 24.0,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+              ],
             ),
           ),
           GestureDetector(
@@ -99,7 +195,12 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
           Padding(
             padding: const EdgeInsets.all(24.0),
             child: GestureDetector(
-              onTap: () {}, //TODO implement tasks in the job class
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => TaskPage()),
+                );
+              }, //TODO implement tasks in the job class
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -128,44 +229,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
                   secondary: const Color.fromARGB(255, 25, 76, 134),
                 ),
               ),
-              child: ExpansionTile(
-                title: const Text('Client Info', style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 25, 76, 134))),
-                children: <Widget>[
-                  if (widget.job.client != null)
-                  ...[
-                    if (widget.job.client!.name != '')
-                    ListTile(
-                      title: const Text('Name'),
-                      subtitle: Text(widget.job.client!.name),
-                    ),
-                    if (widget.job.client!.phone != '')
-                    ListTile(
-                      title: const Text('Phone'),
-                      subtitle: Text(widget.job.client!.phone),
-                    ),
-                    if (widget.job.client!.email != '')
-                    ListTile(
-                      title: const Text('Email'),
-                      subtitle: Text(widget.job.client!.email),
-                    ),
-                    if (widget.job.client!.notes != '')
-                    ListTile(
-                      title: const Text('Notes'),
-                      subtitle: Text(widget.job.client!.notes),
-                    ),
-                  ]
-                  else
-                    const ListTile(
-                      title: Text('No client info available'),
-                    ),
-                  ListTile(
-                    title: TextButton(
-                      onPressed: () => _editClientInfo(context, widget.job),
-                      child: const Text('Edit'),
-                    ),
-                  ),
-                ],
-              ),
+              child: showClientInfo(context),
             ),
           ),
           Padding(
@@ -176,32 +240,146 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
                   secondary: const Color.fromARGB(255, 25, 76, 134),
                 ),
               ),
-              child: ExpansionTile(
-                title: const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Job Details',
-                      style: TextStyle(
-                        fontSize: 20.0,
-                        fontWeight: FontWeight.bold,
-                        color: Color.fromARGB(255, 25, 76, 134),
-                      ),
-                    ),
-                  ],
-                ),
-                children: <Widget>[
-                  ListTile(
-                    title: const Text('Type'),
-                    subtitle: Text(widget.job.type),
-                  )
-                ],
-              ),
+              child: showJobDetails(),
             ),
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {}, //TODO implement edit job
+        child: const Icon(Icons.edit, color: Colors.white,),
+        backgroundColor: const Color.fromARGB(255, 25, 76, 134),
+      ),
     );
+  }
+
+  ExpansionTile showClientInfo(BuildContext context) {
+    return ExpansionTile(
+              title: const Text('Client Info', style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 25, 76, 134))),
+              children: <Widget>[
+                if (widget.job.client != null)
+                ...[
+                  if (widget.job.client!.name != '')
+                  ListTile(
+                    title: const Text('Name'),
+                    subtitle: Text(widget.job.client!.name),
+                  ),
+                  if (widget.job.client!.phone != '')
+                  ListTile(
+                    title: const Text('Phone'),
+                    subtitle: Text(widget.job.client!.phone),
+                  ),
+                  if (widget.job.client!.email != '')
+                  ListTile(
+                    title: const Text('Email'),
+                    subtitle: Text(widget.job.client!.email),
+                  ),
+                  if (widget.job.client!.notes != '')
+                  ListTile(
+                    title: const Text('Notes'),
+                    subtitle: Text(widget.job.client!.notes),
+                  ),
+                ]
+                else
+                  const ListTile(
+                    title: Text('No client info available'),
+                  ),
+                ListTile(
+                  title: TextButton(
+                    onPressed: () => _editClientInfo(context, widget.job),
+                    child: const Text('Edit'),
+                  ),
+                ),
+              ],
+            );
+  }
+
+  ExpansionTile showJobDetails() {
+    return ExpansionTile(
+              title: const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Job Details',
+                    style: TextStyle(
+                      fontSize: 20.0,
+                      fontWeight: FontWeight.bold,
+                      color: Color.fromARGB(255, 25, 76, 134),
+                    ),
+                  ),
+                ],
+              ),
+              children: <Widget>[
+                if (widget.job.rooms >= 1)
+                  ListTile(
+                    title: const Text('Rooms'),
+                    subtitle: Text(widget.job.rooms.toString()),
+                  ),
+                if (widget.job.bathrooms >= 1)
+                  ListTile(
+                    title: const Text('Bathrooms'),
+                    subtitle: Text(widget.job.bathrooms.toString()),
+                  ),
+                if (widget.job.kitchens >= 1)
+                  ListTile(
+                    title: const Text('Kitchens'),
+                    subtitle: Text(widget.job.kitchens.toString()),
+                  ),
+                if (widget.job.livingRooms >= 1)
+                  ListTile(
+                    title: const Text('Living Rooms'),
+                    subtitle: Text(widget.job.livingRooms.toString()),
+                  ),
+                if (widget.job.hallways >= 1)
+                  ListTile(
+                    title: const Text('Hallways'),
+                    subtitle: Text(widget.job.hallways.toString()),
+                  ),
+                if (widget.job.balconies >= 1)
+                  ListTile(
+                    title: const Text('Balconies'),
+                    subtitle: Text(widget.job.balconies.toString()),
+                  ),
+                if (widget.job.garages >= 1)
+                  ListTile(
+                    title: const Text('Garages'),
+                    subtitle: Text(widget.job.garages.toString()),
+                  ),
+                if (widget.job.otherRooms >= 1)
+                  ListTile(
+                    title: const Text('Other Rooms'),
+                    subtitle: Text(widget.job.otherRooms.toString()),
+                  ),
+                ListTile(
+                  title: const Text('Type of Paint'),
+                  subtitle: Text(widget.job.typeOfPaint),
+                ),
+                ListTile(
+                  title: const Text('Type of Finish'),
+                  subtitle: Text(widget.job.typeOfFinish),
+                ),
+                ListTile(
+                  title: const Text('Previous Color'),
+                  subtitle: Text(widget.job.previousColor),
+                ),
+                ListTile(
+                  title: const Text('New Color'),
+                  subtitle: Text(widget.job.newColor),
+                ),
+                ListTile(
+                  title: const Text('Color Reference'),
+                  subtitle: Text(widget.job.colorReference),
+                ),
+                ListTile(
+                  title: const Text('Furnished'),
+                  subtitle: Text(widget.job.furnished ? 'Yes' : 'No'),
+                ),
+                ListTile(
+                  title: const Text('Notes'),
+                  subtitle: Text(widget.job.notes),
+                ),
+              ],
+            );
   }
 
   void _editClientInfo(BuildContext context, Job job) async {
@@ -281,6 +459,17 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
                         onPressed: () {
                           setState(() {
                             job.assignClient(tempClient);
+                            //update the job on the box
+                            var box = Hive.box('jobs');
+
+                            for (var key in box.keys) {
+                              final jobData = box.get(key);
+                              if (jobData != null && jobData['title'] == job.title) {
+                                box.put(key, job.toMap());
+                              }
+                              // print("\n\n----\nJob key");
+                              // print(jobData);
+                            }
                           });
                           Navigator.of(context).pop();
                         },

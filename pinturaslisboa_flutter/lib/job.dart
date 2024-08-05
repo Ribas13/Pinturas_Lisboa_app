@@ -1,5 +1,13 @@
 import 'client.dart';
 
+
+/* JOB 
+
+    2 rooms
+    2 WC */
+
+
+
 class Job {
   String title = "";
   String address = "";
@@ -29,6 +37,9 @@ class Job {
   DateTime created = DateTime.now();
   // timestamp for when the job was last updated
   DateTime updated = DateTime.now();
+
+  //Tasks
+
 
   //client info
   // ignore: unused_field
@@ -99,6 +110,12 @@ class Job {
       totalUnits = rooms + (bathrooms * 0.5) + (kitchens * 0.5) + (livingRooms * 1.5) + (hallways * 0.5) + (balconies * 0.5) + (garages * 1) + (otherRooms * 1);
       created = map['created'];
       updated = map['updated'];
+      client = Client(
+        name: map['client_name'],
+        phone: map['client_phone'],
+        email: map['client_email'],
+        notes: map['client_notes']
+      );
   }
 
   //toMap method
@@ -125,6 +142,12 @@ class Job {
       'colorReference': colorReference,
       'furnished': furnished ? 1 : 0,
       'notes': notes,
+      'created': created,
+      'updated': updated,
+      'client_name': client?.name,
+      'client_phone': client?.phone,
+      'client_email': client?.email,
+      'client_notes': client?.notes
     };
   }
 

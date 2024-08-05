@@ -92,7 +92,12 @@ class _MyHomePageState extends State<MyHomePage> {
     var box = await Hive.openBox('jobs');
     bool hasContent = box.isNotEmpty;
     if (hasContent) {
+      // box.deleteAll(box.keys);
+      print("\n\n-------\nBox has content\n\n");
+      print("\n----------\nBox Size: " + box.length.toString() + "\n----------\n");
       _loadJobs(box);
+    } else {
+      print("\n\n-------\nBox is empty\n\n-------\n");
     }
     setState(() {
       _hasContent = hasContent;
@@ -103,8 +108,14 @@ class _MyHomePageState extends State<MyHomePage> {
       final List<Job> loadedJobs = [];
       for (var key in box.keys) {
         final jobData = box.get(key);
-        if (jobData != null) {
-          loadedJobs.add(Job.fromMap(jobData));
+        if (jobData != null && jobData is Map) {
+          try {
+            final jobMap = Map<String, dynamic>.from(jobData);
+            print("Adding a job");
+            loadedJobs.add(Job.fromMap(jobMap));
+          } catch (e) {
+            print("Error casting jobData to Map<String, dynamic>");
+          }
         }
       }
       setState(() {
@@ -144,7 +155,14 @@ class _MyHomePageState extends State<MyHomePage> {
           );
           if (newJob != null) {
               setState(() {
-              jobs.add(newJob);
+                //adicionar o newjob a box
+                var box = Hive.box('jobs');
+                // box.add(newJob.toMap());
+                box.put( jobs.length, newJob.toMap());
+                print("\n\n-------\nNew job added\n\n-------\n");
+                //print all the jobs to console
+                print(box.values);
+                jobs.add(newJob);
             });
           }
         },
@@ -169,6 +187,14 @@ class _MyHomePageState extends State<MyHomePage> {
             );
           }
         ),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.white),
+            onPressed: () {
+              print("\n\n-------\nsettings pressed\n\n-------\n");
+            },
+          )
+        ],
       );
     }
 
@@ -214,6 +240,10 @@ class _MyHomePageState extends State<MyHomePage> {
             onDismissed: (direction) {
               setState(() {
                 jobs.removeAt(index);
+                var box = Hive.box('jobs');
+                box.deleteAt(index);
+                print("\n\n-------\nDeleted job at index $index\n\n-------\n");
+                print(box.values);
               });
             },
             child: _buildJobCard(context, job), // Add the required 'child' argument

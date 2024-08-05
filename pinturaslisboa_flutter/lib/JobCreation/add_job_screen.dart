@@ -33,6 +33,8 @@ class _AddJobScreenState extends State<AddJobScreen> {
 
 
   final List<String> _jobTypes = ['Apartment', 'House', 'Commercial'];
+  final List<String> _paintTypes = ['Cin', 'Robbialac'];
+  final List<String> _finishTypes = ['Acetinado', 'Mate'];
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
@@ -260,25 +262,47 @@ class _AddJobScreenState extends State<AddJobScreen> {
                     });
                   }
                 ),
-                TextFormField(
+                DropdownButtonFormField<String>(
                   decoration: const InputDecoration(labelText: 'Type of Paint'),
+                  items: _paintTypes.map((String paintType) {
+                    return DropdownMenuItem<String>(
+                      value: paintType,
+                      child: Text(paintType),
+                    );
+                  }).toList(),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter the type of paint';
                     }
                     return null;
                   },
+                  onChanged: (value) {
+                    setState(() {
+                      _typeOfPaint = value!;
+                    });
+                  },
                   onSaved: (value) {
                     _typeOfPaint = value!;
-                  },
+                  }
                 ),
-                TextFormField(
+                DropdownButtonFormField<String>(
                   decoration: const InputDecoration(labelText: 'Type of Finish'),
+                  items: _finishTypes.map((String finishType) {
+                    return DropdownMenuItem<String>(
+                      value: finishType,
+                      child: Text(finishType),
+                    );
+                  }).toList(),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter the type of finish';
                     }
                     return null;
+                  },
+                  onChanged: (value) {
+                    setState(() {
+                      _typeOfFinish = value!;
+                    });
                   },
                   onSaved: (value) {
                     _typeOfFinish = value!;
