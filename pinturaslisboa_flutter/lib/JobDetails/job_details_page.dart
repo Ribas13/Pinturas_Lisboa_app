@@ -4,6 +4,7 @@ import '../job.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../client.dart';
 import '../Tasks/task_page.dart';
+import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 
 class JobDetailsPage extends StatefulWidget {
   final Job job;
@@ -39,13 +40,19 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar( //add a edit button on the right side of the app bar
         title: Text(
           textAlign: TextAlign.center,
           widget.job.title,
           style: const TextStyle(color: Color.fromARGB(255, 25, 76, 134), fontWeight: FontWeight.bold),
         ),
         iconTheme: const IconThemeData(color: Color.fromARGB(255, 25, 76, 134)),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () {},
+          ),
+        ],
       ),
       body: ListView(
         children: <Widget>[
@@ -83,53 +90,54 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
                     height: 150,
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
-                        colors: [Color.fromARGB(52, 25, 76, 134).withOpacity(0.5), Colors.transparent],
+                        colors: [const Color.fromARGB(52, 25, 76, 134).withOpacity(0.5), Colors.transparent],
                         center: Alignment.center,
                         radius: 10.0,
                       ),
                       color: const Color.fromARGB(52, 25, 76, 134),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(6),
-                            color: Colors.white,
-                          ),
-                          child: Stack(
-                            children: [
-                              Image.network(
-                                mapImageUrl,
-                                fit: BoxFit.cover,
-                                loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-                                  if (loadingProgress == null) {
-                                    return child;
-                                  } else {
-                                    return Center(
-                                      child: CircularProgressIndicator(
-                                        value: loadingProgress.expectedTotalBytes != null
-                                        ? loadingProgress.cumulativeBytesLoaded / (loadingProgress.expectedTotalBytes ?? 1)
-                                        : null,
-                                      ),
-                                    );
-                                  }
-                                },
-                                errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
-                                  return const Text('Failed to load map image');
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          // border: Border.all(
+                          //   color: const Color.fromARGB(52, 25, 76, 134),
+                          //   width: 4,
+                          // ),
+                          borderRadius: BorderRadius.circular(6),
+                          color: Colors.white,
+                        ),
+                        child: Stack(
+                          children: [
+                            Image.network(
+                              mapImageUrl,
+                              fit: BoxFit.cover,
+                              loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                                if (loadingProgress == null) {
+                                  return child;
+                                } else {
+                                  return Center(
+                                    child: CircularProgressIndicator(
+                                      value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded / (loadingProgress.expectedTotalBytes ?? 1)
+                                      : null,
+                                    ),
+                                  );
                                 }
+                              },
+                              errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+                                return const Text('Failed to load map image');
+                              }
+                            ),
+                            const Center(
+                              child: Icon(
+                                Icons.location_on,
+                                color:  Color.fromARGB(255, 25, 76, 134),
+                                size: 24.0,
                               ),
-                              const Center(
-                                child: Icon(
-                                  Icons.location_on,
-                                  color:  Color.fromARGB(255, 25, 76, 134),
-                                  size: 24.0,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -198,7 +206,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => TaskPage()),
+                  MaterialPageRoute(builder: (context) => const TaskPage()),
                 );
               }, //TODO implement tasks in the job class
               child: const Row(
@@ -212,11 +220,12 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
                       color: Color.fromARGB(255, 25, 76, 134),
                     ),
                   ),
-                  SizedBox(width: 5),
+                  // SizedBox(width: 5),
                   Icon(
-                    Icons.arrow_right,
+                    Icons.task_alt_outlined,
                     color: Color.fromARGB(255, 25, 76, 134),
                   ),
+                  // SizedBox(width: 0),
                 ],
               ),
             ),
@@ -243,13 +252,47 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
               child: showJobDetails(),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.all(5),
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: Theme.of(context).colorScheme.copyWith(
+                  secondary: const Color.fromARGB(255, 25, 76, 134),
+                ),
+              ),
+              child: showCalendar(),
+            ),
+          ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {}, //TODO implement edit job
-        child: const Icon(Icons.edit, color: Colors.white,),
-        backgroundColor: const Color.fromARGB(255, 25, 76, 134),
-      ),
+    );
+  }
+
+  ExpansionTile showCalendar() {
+
+    List<DateTime> _dates = [];
+
+    return ExpansionTile(
+      title: const Text('Calendar', style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 25, 76, 134))),
+      initiallyExpanded: true,
+      children: <Widget>[
+        CalendarDatePicker2(
+        config: CalendarDatePicker2Config(
+          calendarType: CalendarDatePicker2Type.multi,
+          daySplashColor: Colors.blue.withOpacity(0.08),
+          dayTextStyle: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.bold, fontSize: 16.0),
+          weekdayLabelTextStyle: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.bold, fontSize: 16.0),
+          monthTextStyle: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.bold, fontSize: 16.0),
+          yearTextStyle: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.bold, fontSize: 16.0),
+          disableModePicker: true,
+        ),
+       value: _dates,
+       onValueChanged: (dates) {
+        _dates = dates;
+        print("Dates: $_dates");
+       },
+       ),
+      ],
     );
   }
 
