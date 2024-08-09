@@ -1,7 +1,10 @@
 // ignore_for_file: library_private_types_in_public_api, non_constant_identifier_names
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/adapters.dart';
+import 'package:pinturaslisboa_flutter/search_screen.dart';
 import 'splash_screen.dart';
 import 'JobCreation/add_job_screen.dart';
 import 'job.dart';
@@ -16,7 +19,10 @@ import 'package:hive_flutter/hive_flutter.dart';
 void main() async {
   await Hive.initFlutter();
   var box = await Hive.openBox('jobs');
+  var tasks_db = await Hive.openBox('tasks');
   bool hasContent = box.isNotEmpty;
+  // ignore: unused_local_variable
+  bool hasTasks = tasks_db.isNotEmpty;
   runApp(MyApp(hasContent: hasContent));
 }
 
@@ -64,29 +70,27 @@ class _MyHomePageState extends State<MyHomePage> {
 
   bool _hasContent = false;
   List<Job> jobs = [];
+  int _selectedIndex = 0;
+  bool _showAppBar = true;
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    // Timer(Duration(seconds: 5), () {
+    //   setState(() {
+    //     _showAppBar = false;
+    //     print("\n\n-------\nHiding AppBar\n\n-------\n");
+    //   });
+    // });
     _checkBoxContentAndLoadJobs();
     
   }
-
-  /* Job
-      -> title
-      -> progress
-      -> type
-      
-      Table
-        title: string
-        progress: number
-        type: string
-      
-      Entry: index
-        content: List{"title", "progress", "type"} 
-        
-      
-      Job -> vars*/
 
   Future<void> _checkBoxContentAndLoadJobs() async {
     var box = await Hive.openBox('jobs');
@@ -126,50 +130,86 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      //appBar: _showAppBar ? buildAppBar() : null,
       appBar: buildAppBar(),
       backgroundColor: const Color.fromARGB(240, 255, 255, 255),
       body: populateJobList(jobs),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color.fromARGB(179, 12, 96, 165),
-        elevation: 1,
-        onPressed: () async {
-          HapticFeedback.vibrate();
-          final Job newJob = await Navigator.push(
-            context,
-            PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) => AddJobScreen(),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                var begin = const Offset(0.0, 1.0);
-                var end = Offset.zero;
-                var curve = Curves.easeInOut;
-                var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                var offsetAnimation = animation.drive(tween);
+      floatingActionButton: new_job_button(context),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
+      bottomNavigationBar: bottom_bar_screens(),
+    );
+  }
 
-                return SlideTransition(
-                  position: offsetAnimation,
-                  child: child,
-                );
-              },
-              transitionDuration: const Duration(milliseconds: 300),
-            ),
-          );
-          if (newJob != null) {
-              setState(() {
-                //adicionar o newjob a box
-                var box = Hive.box('jobs');
-                // box.add(newJob.toMap());
-                box.put( jobs.length, newJob.toMap());
-                print("\n\n-------\nNew job added\n\n-------\n");
-                //print all the jobs to console
-                print(box.values);
-                jobs.add(newJob);
-            });
-          }
-        },
-        child: const Icon(Icons.add, color: Colors.white,),
+  BottomAppBar bottom_bar_screens() {
+    return BottomAppBar(
+      color: Colors.white,
+      shape: const CircularNotchedRectangle(),
+      notchMargin: 8.0,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: <Widget>[
+          _buildBottomNavigationItem(Icons.home_rounded, "Home", 0),
+          _buildBottomNavigationItem(Icons.calendar_month, "Calendar", 1),
+          _buildBottomNavigationItem(Icons.inventory, "Inventory", 2),
+          _buildBottomNavigationItem(Icons.notifications, "Notifications", 3),
+          const SizedBox(width: 5),
+        ],
       ),
     );
   }
+
+  FloatingActionButton new_job_button(BuildContext context) {
+    return FloatingActionButton(
+      shape: const CircleBorder(),
+      backgroundColor: const Color.fromARGB(255, 12, 96, 165),
+      elevation: 1,
+      onPressed: () async {
+        HapticFeedback.vibrate();
+        final Job newJob = await Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => AddJobScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              var begin = const Offset(0.0, 1.0);
+              var end = Offset.zero;
+              var curve = Curves.easeInOut;
+              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+              var offsetAnimation = animation.drive(tween);
+
+              return SlideTransition(
+                position: offsetAnimation,
+                child: child,
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 300),
+          ),
+        );
+        if (newJob != null) {
+            setState(() {
+              var box = Hive.box('jobs');
+              box.put( jobs.length, newJob.toMap());
+              jobs.add(newJob);
+          });
+        }
+      },
+      child: const Icon(Icons.add, color: Colors.white,),
+    );
+  }
+
+  Widget _buildBottomNavigationItem(IconData icon, String label, int index) {
+    return GestureDetector(
+      onTap: () => _onItemTapped(index),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Icon(icon, color: _selectedIndex == index ? const Color.fromARGB(255, 12, 96, 165) : Colors.grey),
+          
+        ],
+      ),
+    );
+  }
+
   AppBar buildAppBar() {
       return AppBar(
         elevation: 3,
@@ -199,61 +239,105 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     Widget populateJobList(List<Job> jobs) {
+      //bool search_built_flag = false;
       return ListView.builder(
-        itemCount: jobs.length,
+        itemCount: jobs.length + 1,
         itemBuilder: (context, index) {
-          final job = jobs[index];
-          return Dismissible(
-            key: Key(jobs[index].address),
-            direction: DismissDirection.endToStart,
-            background: Container(
-              color: const Color.fromARGB(255, 12, 96, 165),
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 20.0),
-              child: const Icon(
-                Icons.delete_outline_rounded,
+          if (index == 0) {
+            //search_built_flag = true;
+            return GestureDetector(
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) => SearchScreen(),
+                  ),
+                );
+              },
+              child: Card(
                 color: Colors.white,
+                margin: const EdgeInsets.all(10),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Row(
+                      children: [
+                        Icon(Icons.search, color: Colors.grey[800]),
+                        SizedBox(width: 10),
+                        Text(
+                          'Search jobs...(not functional)',
+                          style: TextStyle(color: Colors.grey[800], fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
-            confirmDismiss: (direction) async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: const Text("Confirm"),
-                    content: const Text("Are you sure you want to delete this?"),
-                    actions: <Widget>[
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        child: const Text("CANCEL"),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        child: const Text("DELETE"),
-                      ),
-                    ],
-                  );
-                },
-              );
-              return confirm ?? false;
-            },
-            onDismissed: (direction) {
-              setState(() {
-                jobs.removeAt(index);
-                var box = Hive.box('jobs');
-                box.deleteAt(index);
-                print("\n\n-------\nDeleted job at index $index\n\n-------\n");
-                print(box.values);
-              });
-            },
-            child: _buildJobCard(context, job), // Add the required 'child' argument
-          );
+            );
+          } else {
+            final job = jobs[index - 1];
+            return Dismissible(
+              key: Key(jobs[index - 1].address),
+              direction: DismissDirection.endToStart,
+              background: Container(
+                color: const Color.fromARGB(255, 12, 96, 165),
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 20.0),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.white,
+                ),
+              ),
+              confirmDismiss: (direction) async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: const Text("Confirm"),
+                      content: const Text("Are you sure you want to delete this?"),
+                      actions: <Widget>[
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text("CANCEL"),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          child: const Text("DELETE"),
+                        ),
+                      ],
+                    );
+                  },
+                );
+                return confirm ?? false;
+              },
+              onDismissed: (direction) {
+                setState(() {
+                  jobs.removeAt(index);
+                  var box = Hive.box('jobs');
+                  box.deleteAt(index);
+                  print("\n\n-------\nDeleted job at index $index\n\n-------\n");
+                  print(box.values);
+                });
+              },
+              child: _buildJobCard(context, job), // Add the required 'child' argument
+            );
+          }
         },
       );
     }
 
   Widget _buildJobCard(BuildContext context, Job job) {
     return Card(
+      color: Colors.white,
       margin: const EdgeInsets.all(10),
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -303,7 +387,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: child,
                   );
                 },
-                transitionDuration: Duration(milliseconds: 300),
+                transitionDuration: const Duration(milliseconds: 300),
               ),
             );
           }
